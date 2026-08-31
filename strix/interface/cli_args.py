@@ -299,6 +299,8 @@ Examples:
         # The MCP loader reads this env var as its config-path override, so
         # setting it here makes the flag win over the default location.
         os.environ["STRIX_MCP_CONFIG"] = str(mcp_config_path)
+        # Strix Safe: --mcp-config is an explicit opt-in for this run.
+        os.environ["STRIX_ALLOW_MCP"] = "1"
 
     # The MCP loader reads these as its per-run include/exclude selection.
     if args.mcp_server:

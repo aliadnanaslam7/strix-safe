@@ -759,16 +759,38 @@ def test_loader_returns_empty_when_file_absent(tmp_path: Path) -> None:
 
 
 def test_loader_reads_env_var_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from strix.config import loader
+
     config_file = tmp_path / "from-env.json"
     config_file.write_text(
         json.dumps([{"name": "local_fs", "transport": "stdio", "command": "npx"}]),
         encoding="utf-8",
     )
     monkeypatch.setenv("STRIX_MCP_CONFIG", str(config_file))
+    monkeypatch.setenv("STRIX_ALLOW_MCP", "1")
+    monkeypatch.setenv("STRIX_ALLOW_MCP_STDIO", "1")
+    loader._cached = None
 
     configs = load_user_mcp_configs()
 
     assert [c.name for c in configs] == ["local_fs"]
+
+
+def test_loader_disabled_by_strix_safe_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from strix.config import loader
+
+    config_file = tmp_path / "from-env.json"
+    config_file.write_text(
+        json.dumps([{"name": "local_fs", "transport": "http", "url": "https://mcp.example"}]),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("STRIX_MCP_CONFIG", str(config_file))
+    monkeypatch.delenv("STRIX_ALLOW_MCP", raising=False)
+    loader._cached = None
+
+    assert load_user_mcp_configs() == []
 
 
 def _names_file(tmp_path: Path, *names: str) -> Path:

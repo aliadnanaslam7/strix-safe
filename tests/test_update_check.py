@@ -13,9 +13,15 @@ from strix.interface import update_check
 
 @pytest.fixture(autouse=True)
 def _isolated_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from strix.config import loader
+
     monkeypatch.setattr(update_check, "_CACHE_PATH", tmp_path / "update-check.json")
     monkeypatch.setattr(update_check, "_background_thread", None)
     monkeypatch.delenv("STRIX_NO_UPDATE_CHECK", raising=False)
+    # Strix Safe disables background checks unless opted in; most of these tests
+    # cover the check path itself, so allow it for the suite.
+    monkeypatch.setenv("STRIX_ALLOW_SELF_UPDATE", "1")
+    loader._cached = None
     for key in ("CI", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL", "BUILDKITE", "CIRCLECI"):
         monkeypatch.delenv(key, raising=False)
 
@@ -60,6 +66,22 @@ def test_get_available_update_disabled_by_env(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(update_check, "get_version", lambda: "1.0.0")
     monkeypatch.setenv("STRIX_NO_UPDATE_CHECK", "1")
     assert update_check.get_available_update() is None
+
+
+def test_get_available_update_disabled_by_strix_safe_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from strix.config import loader
+
+    update_check._CACHE_PATH.write_text(
+        json.dumps({"latest_version": "9.9.9", "checked_at": time.time()})
+    )
+    monkeypatch.setattr(update_check, "get_version", lambda: "1.0.0")
+    monkeypatch.delenv("STRIX_ALLOW_SELF_UPDATE", raising=False)
+    monkeypatch.setattr(loader, "_cached", None)
+    assert update_check.get_available_update() is None
+    monkeypatch.setenv("STRIX_ALLOW_SELF_UPDATE", "1")
+    monkeypatch.setattr(loader, "_cached", None)
 
 
 def test_get_available_update_disabled_in_ci(monkeypatch: pytest.MonkeyPatch) -> None:

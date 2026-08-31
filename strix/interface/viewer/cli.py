@@ -66,6 +66,8 @@ def run_view(argv: list[str]) -> None:
         )
         raise SystemExit(1)
 
+    _reject_remote_host_unless_allowed(args.host, console)
+
     run_dir = _resolve_run_dir(args.run, console)
 
     httpd, url, token = serve(
@@ -141,6 +143,27 @@ def _fail_no_run(console: Console, *, requested: str | None) -> NoReturn:
         for name in available[:20]:
             console.print(f"  [cyan]{name}[/]")
     raise SystemExit(1)
+
+
+def _is_loopback_host(host: str) -> bool:
+    normalized = host.strip().lower().strip("[]")
+    return normalized in {"127.0.0.1", "localhost", "::1"}
+
+
+def _reject_remote_host_unless_allowed(host: str, console: Console) -> None:
+    """Strix Safe: block non-loopback binds unless STRIX_VIEWER_ALLOW_REMOTE=1."""
+    from strix.config import load_settings
+
+    if _is_loopback_host(host):
+        return
+    if load_settings().hardening.viewer_allow_remote:
+        return
+    console.print(
+        f"[bold red]Refusing to bind viewer to '{host}'.[/]\n"
+        "Strix Safe defaults to loopback only. Use [cyan]--host 127.0.0.1[/] "
+        "(default), or set [cyan]STRIX_VIEWER_ALLOW_REMOTE=1[/] to allow remote binds."
+    )
+    raise SystemExit(2)
 
 
 __all__ = ["run_view"]

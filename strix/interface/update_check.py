@@ -46,6 +46,12 @@ _background_thread: threading.Thread | None = None
 
 
 def _is_disabled() -> bool:
+    # Strix Safe: background update checks are off unless explicitly allowed.
+    # Explicit ``strix --update`` still works; STRIX_NO_UPDATE_CHECK / CI also disable.
+    from strix.config import load_settings
+
+    if not load_settings().hardening.allow_self_update:
+        return True
     return bool(os.environ.get("STRIX_NO_UPDATE_CHECK")) or any(
         os.environ.get(key)
         for key in ("CI", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL", "BUILDKITE", "CIRCLECI")

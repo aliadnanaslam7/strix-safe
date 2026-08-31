@@ -6,9 +6,15 @@
 
 <div align="center">
 
-# Strix
+# Strix Safe
 
-### The open-source AI pentesting tool. Autonomous AI hackers that find and fix your app’s vulnerabilities.
+### Hardened public fork of [usestrix/strix](https://github.com/usestrix/strix) — safer defaults for team use.
+
+> **This is not upstream Strix.** Repo: [aliadnanaslam7/strix-safe](https://github.com/aliadnanaslam7/strix-safe).  
+> See [TEAM_HARDENING.md](./TEAM_HARDENING.md) for install and opt-in gates.  
+> **Do not** use `curl https://strix.ai/install | bash` if you want these defaults.
+
+**Safe defaults:** telemetry off · MCP off · local mounts read-only · no background self-update · viewer loopback-only.
 
 <br/>
 
@@ -78,19 +84,22 @@ Strix are autonomous AI penetration testing agents that act just like real hacke
 ### Installation & First Scan
 
 ```bash
-# Install Strix
-curl -sSL https://strix.ai/install | bash
+# Clone this fork (do NOT use curl | bash from strix.ai)
+git clone git@github.com:aliadnanaslam7/strix-safe.git
+cd strix-safe
+uv sync   # or: pip install -e .
 
 # Configure your AI provider
 export STRIX_LLM="openai/gpt-5.4"
 export LLM_API_KEY="your-api-key"
 
-# Run your first security assessment
+# Run your first security assessment (telemetry/MCP off by default)
 strix --target ./app-directory
 ```
 
 > [!NOTE]
-> First run automatically pulls the sandbox Docker image. Results are saved to `strix_runs/<run-name>`
+> First run automatically pulls the sandbox Docker image. Results are saved to `strix_runs/<run-name>`.  
+> Hardening details: [TEAM_HARDENING.md](./TEAM_HARDENING.md).
 
 ---
 

@@ -117,7 +117,27 @@ class RuntimeSettings(BaseSettings):
 class TelemetrySettings(BaseSettings):
     model_config = _BASE_CONFIG
 
-    enabled: bool = Field(default=True, alias="STRIX_TELEMETRY")
+    # Strix Safe default: telemetry OFF. Opt in with STRIX_TELEMETRY=1.
+    enabled: bool = Field(default=False, alias="STRIX_TELEMETRY")
+
+
+class HardeningSettings(BaseSettings):
+    """Safe-by-default gates for this fork (aliadnanaslam7/strix-safe)."""
+
+    model_config = _BASE_CONFIG
+
+    # Background update checks / update prompts. Explicit ``strix --update`` still
+    # works; set STRIX_ALLOW_SELF_UPDATE=1 to restore upstream auto-check UX.
+    allow_self_update: bool = Field(default=False, alias="STRIX_ALLOW_SELF_UPDATE")
+    # MCP is fully off unless opted in (CLI --mcp-config sets this for the run).
+    allow_mcp: bool = Field(default=False, alias="STRIX_ALLOW_MCP")
+    # Even with MCP allowed, stdio servers spawn host processes — require an
+    # extra explicit opt-in.
+    allow_mcp_stdio: bool = Field(default=False, alias="STRIX_ALLOW_MCP_STDIO")
+    # Local target bind mounts are read-only unless opted in.
+    writable_mounts: bool = Field(default=False, alias="STRIX_WRITABLE_MOUNTS")
+    # Viewer may only bind non-loopback hosts when opted in.
+    viewer_allow_remote: bool = Field(default=False, alias="STRIX_VIEWER_ALLOW_REMOTE")
 
 
 class IntegrationSettings(BaseSettings):
@@ -152,5 +172,6 @@ class Settings(BaseSettings):
     runtime: RuntimeSettings = Field(default_factory=RuntimeSettings)
     context: ContextSettings = Field(default_factory=ContextSettings)
     telemetry: TelemetrySettings = Field(default_factory=TelemetrySettings)
+    hardening: HardeningSettings = Field(default_factory=HardeningSettings)
     integrations: IntegrationSettings = Field(default_factory=IntegrationSettings)
     viewer: ViewerSettings = Field(default_factory=ViewerSettings)
