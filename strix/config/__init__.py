@@ -13,6 +13,7 @@ Public surface:
 
 from strix.config.loader import (
     apply_config_override,
+    invalidate_settings_cache,
     load_settings,
     persist_current,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "Settings",
     "TelemetrySettings",
     "apply_config_override",
+    "invalidate_settings_cache",
     "load_settings",
     "persist_current",
 ]

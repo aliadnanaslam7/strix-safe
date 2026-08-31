@@ -25,6 +25,22 @@ _DEFAULT_PATH: Path = Path.home() / ".strix" / "cli-config.json"
 _override: Path | None = None
 _cached: Settings | None = None
 
+# Strix Safe: per-run / hardening opt-in flags must never be written into
+# ``cli-config.json`` (or reloaded from a previously poisoned file). Otherwise
+# ``strix --mcp-config …`` would permanently re-enable MCP on later runs.
+_EPHEMERAL_ENV_ALIASES = frozenset(
+    {
+        "STRIX_ALLOW_MCP",
+        "STRIX_ALLOW_MCP_STDIO",
+        "STRIX_ALLOW_SELF_UPDATE",
+        "STRIX_WRITABLE_MOUNTS",
+        "STRIX_VIEWER_ALLOW_REMOTE",
+        "STRIX_MCP_CONFIG",
+        "STRIX_MCP_ONLY",
+        "STRIX_MCP_EXCLUDE",
+    }
+)
+
 
 def load_settings() -> Settings:
     """Resolve settings from env + JSON file + defaults. Memoized.
@@ -43,6 +59,12 @@ def load_settings() -> Settings:
             sum(len(v) for v in init_kwargs.values()),
         )
     return _cached
+
+
+def invalidate_settings_cache() -> None:
+    """Drop the memoized :class:`Settings` so the next load sees fresh env."""
+    global _cached  # noqa: PLW0603
+    _cached = None
 
 
 def apply_config_override(path: Path) -> None:
@@ -66,9 +88,12 @@ def persist_current() -> None:
             continue
         for finfo in type(sub_model).model_fields.values():
             for alias in _aliases_for(finfo):
-                value = os.environ.get(alias.upper())
+                key = alias.upper()
+                if key in _EPHEMERAL_ENV_ALIASES:
+                    continue
+                value = os.environ.get(key)
                 if value:
-                    env_block[alias.upper()] = value
+                    env_block[key] = value
                     break
 
     write_secret_text(target, json.dumps({"env": env_block}, indent=2))
@@ -117,6 +142,8 @@ def _read_json_overrides(path: Path) -> dict[str, dict[str, Any]]:
             if any(alias in env_present for alias in aliases):
                 continue  # env wins under some alias; skip the JSON file for this field
             for alias in aliases:
+                if alias in _EPHEMERAL_ENV_ALIASES:
+                    continue
                 if alias in env_block_upper:
                     sub_data[fname] = env_block_upper[alias]
                     break

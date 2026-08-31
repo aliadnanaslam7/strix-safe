@@ -17,6 +17,7 @@ from strix.core.paths import run_dir_for, runtime_state_dir
 from strix.runtime.backends import backend_supports_bind_mounts, get_backend
 from strix.runtime.caido_bootstrap import bootstrap_caido
 from strix.runtime.caido_handle import CaidoBootstrapHandle
+from strix.runtime.safe_mounts import reject_writable_manifest_uploads_if_needed
 
 
 if TYPE_CHECKING:
@@ -293,6 +294,7 @@ async def create_or_reuse(
                 build_extra_file_bind_mounts(extra_files, staging_dir, local_sources)
             )
     else:
+        reject_writable_manifest_uploads_if_needed(backend_name, local_sources)
         bind_mounts = []
         entries = build_manifest_entries(local_sources)
         if extra_files:

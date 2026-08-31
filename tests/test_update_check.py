@@ -154,25 +154,30 @@ def test_write_cache_preserves_existing_fields() -> None:
     assert cache == {"latest_version": "1.2.3", "checked_at": 123.0, "skipped_version": "9.9.9"}
 
 
-def test_get_upgrade_command_all_methods() -> None:
-    assert update_check.get_upgrade_command("binary") == "strix --update"
-    assert update_check.get_upgrade_command("pipx") == "pipx upgrade strix-agent"
-    assert update_check.get_upgrade_command("uv") == "uv tool upgrade strix-agent"
-    assert update_check.get_upgrade_command("pip") == "pip install --upgrade strix-agent"
+def test_get_upgrade_command_points_at_fork() -> None:
+    cmd = update_check.get_upgrade_command("binary")
+    assert "git" in cmd
+    assert "strix-safe" in cmd
+    assert "pull" in cmd
+    assert update_check.get_upgrade_command("pipx") == update_check.get_upgrade_command("pip")
 
 
-def test_self_update_non_binary_prints_command(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_self_update_refuses_upstream(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(update_check, "is_binary_install", lambda: True)
+    monkeypatch.setattr(update_check, "_fetch_latest_version", lambda: "9.9.9")
+    monkeypatch.setattr(update_check, "get_version", lambda: "1.0.0")
+    buffer = io.StringIO()
+    assert update_check.self_update(Console(file=buffer), version="9.9.9") is False
+    text = buffer.getvalue()
+    assert "disabled" in text.lower() or "Strix Safe" in text
+    assert "strix-safe" in text.lower() or "git" in text.lower()
+
+
+def test_self_update_non_binary_also_refuses(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(update_check, "is_binary_install", lambda: False)
     buffer = io.StringIO()
     assert update_check.self_update(Console(file=buffer)) is False
-    assert "upgrade" in buffer.getvalue()
-
-
-def test_self_update_already_latest(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(update_check, "is_binary_install", lambda: True)
-    monkeypatch.setattr(update_check, "_fetch_latest_version", lambda: "1.0.0")
-    monkeypatch.setattr(update_check, "get_version", lambda: "1.0.0")
-    assert update_check.self_update() is True
+    assert "Safe" in buffer.getvalue() or "git" in buffer.getvalue().lower()
 
 
 def test_restart_env_strips_pyinstaller_vars(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -230,11 +235,12 @@ def test_release_target(
     assert update_check._release_target() == expected
 
 
-def test_self_update_uses_linux_arm64_release(monkeypatch: pytest.MonkeyPatch) -> None:
-    requested_update: list[tuple[str, str]] = []
+def test_self_update_never_downloads_upstream(monkeypatch: pytest.MonkeyPatch) -> None:
+    called = False
 
-    def record_download(version: str, target: str, _console: Console) -> bool:
-        requested_update.append((version, target))
+    def record_download(*_a: object, **_k: object) -> bool:
+        nonlocal called
+        called = True
         return True
 
     monkeypatch.setattr(update_check, "is_binary_install", lambda: True)
@@ -243,5 +249,5 @@ def test_self_update_uses_linux_arm64_release(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(platform, "machine", lambda: "aarch64")
     monkeypatch.setattr(update_check, "_download_and_replace", record_download)
 
-    assert update_check.self_update(Console(file=io.StringIO()), version="1.1.0") is True
-    assert requested_update == [("1.1.0", "linux-arm64")]
+    assert update_check.self_update(Console(file=io.StringIO()), version="1.1.0") is False
+    assert called is False

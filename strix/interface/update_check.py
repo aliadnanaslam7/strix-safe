@@ -74,14 +74,32 @@ def get_install_method() -> str:
 
 
 def get_upgrade_command(method: str | None = None) -> str:
-    method = method or get_install_method()
-    commands = {
-        "binary": "strix --update",
-        "pipx": "pipx upgrade strix-agent",
-        "uv": "uv tool upgrade strix-agent",
-        "pip": "pip install --upgrade strix-agent",
-    }
-    return commands[method]
+    # Strix Safe: never point teammates at upstream installers / PyPI.
+    _ = method
+    return (
+        "git -C <strix-safe-clone> pull origin main  "
+        "# https://github.com/aliadnanaslam7/strix-safe"
+    )
+
+
+def self_update(console: Console | None = None, version: str | None = None) -> bool:
+    """Refuse upstream binary replacement for the Strix Safe fork.
+
+    Upstream ``usestrix/strix`` / PyPI ``strix-agent`` do not include these
+    Safe defaults. Updating this fork must be done via git on
+    ``aliadnanaslam7/strix-safe``.
+    """
+    del version  # kept for API compatibility with callers
+    console = console or Console()
+    console.print(
+        "[bold yellow]Self-update is disabled in Strix Safe.[/]\n"
+        "Upstream installers would replace this fork and drop the hardened "
+        "defaults (telemetry off, MCP off, RO mounts, etc.).\n"
+        "Update with:\n"
+        "  [cyan]git -C <strix-safe-clone> pull origin main[/]\n"
+        "Repo: [cyan]https://github.com/aliadnanaslam7/strix-safe[/]"
+    )
+    return False
 
 
 def _parse_version(value: str) -> tuple[int, ...] | None:
@@ -382,51 +400,4 @@ def _download_and_replace(version: str, target: str, console: Console) -> bool:
     return True
 
 
-def self_update(console: Console | None = None, version: str | None = None) -> bool:
-    """Replace the running standalone binary with the latest release.
-
-    Returns True on success. For package-manager installs this only
-    prints the right upgrade command and returns False.
-    """
-    console = console or Console()
-
-    if not is_binary_install():
-        method = get_install_method()
-        console.print(
-            f"[#eab308]This strix was installed via {method};[/] "
-            f"upgrade it with: [#60a5fa]{get_upgrade_command(method)}[/]"
-        )
-        return False
-
-    latest = version or _fetch_latest_version()
-    if not latest:
-        console.print("[bold red]Could not determine the latest strix version.[/]")
-        return False
-
-    current = get_version()
-    if current != "unknown" and not _is_newer(latest, current):
-        console.print(f"[#22c55e]strix {current} is already the latest version.[/]")
-        return True
-
-    target = _release_target()
-    if not target:
-        console.print(
-            f"[bold red]No prebuilt binary for this platform "
-            f"({platform.system()}/{platform.machine()}).[/]"
-        )
-        return False
-
-    try:
-        _download_and_replace(latest, target, console)
-    except Exception as e:  # noqa: BLE001
-        logger.debug("self-update failed", exc_info=True)
-        console.print(f"[bold red]Update failed:[/] {e}")
-        console.print(
-            "[dim]You can reinstall manually with:[/] "
-            "[#60a5fa]curl -sSL https://strix.ai/install | bash[/]"
-        )
-        return False
-
-    _write_cache(latest_version=latest, checked_at=time.time())
-    console.print(f"[#22c55e]✓ Updated strix to {latest}[/]")
-    return True
+# self_update is defined earlier — Strix Safe refuses upstream binary replacement.

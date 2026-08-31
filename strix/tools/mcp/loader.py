@@ -146,7 +146,7 @@ def load_user_mcp_configs(path: Path | None = None) -> list[McpConnectionConfig]
         except ValidationError as exc:
             logger.warning("Skipping invalid MCP server entry #%d in %s: %s", index, source, exc)
 
-    if not hardening.allow_mcp_stdio and path is None:
+    if not hardening.allow_mcp_stdio:
         kept: list[McpConnectionConfig] = []
         for config in configs:
             if config.transport == "stdio":

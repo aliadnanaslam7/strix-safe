@@ -31,8 +31,9 @@ git fetch upstream
 | MCP stdio (host subprocesses) | **Off** | `STRIX_ALLOW_MCP_STDIO=1` (also needs MCP allow) |
 | Local target bind mounts | **Read-only** | `STRIX_WRITABLE_MOUNTS=1` |
 | Viewer bind address | **Loopback only** | `STRIX_VIEWER_ALLOW_REMOTE=1` for non-`127.0.0.1` |
+| Non-bind-mount backends + local sources | **Refused** (would upload writable copies) | Use Docker bind mounts, or `STRIX_WRITABLE_MOUNTS=1` |
 
-Explicit `strix --update` still works for binary installs; background prompts do not run unless self-update is allowed.
+`strix --update` and package-manager “upgrade strix-agent” paths are **disabled** for this fork — they would pull upstream `usestrix/strix` / PyPI and drop Safe defaults. Update with `git pull` on this repo instead.
 
 ## Recommended first scan
 
@@ -69,9 +70,11 @@ strix view --host 0.0.0.0
 ## Do not
 
 - Install via `curl -sSL https://strix.ai/install | bash` for team machines using this fork
+- Run `strix --update` / `pip install --upgrade strix-agent` expecting Safe defaults to remain
 - Point teammates at upstream PyPI/`strix-agent` if you need these defaults
 - Enable MCP stdio against untrusted server configs
 - Mount home directories or credential stores (the tool already refuses many of these)
+- Rely on non-bind-mount runtime backends with local sources unless you intentionally set `STRIX_WRITABLE_MOUNTS=1`
 
 ## Tracking upstream
 
