@@ -84,8 +84,28 @@ affecting the agents that do the actual testing.
   Postman API key (`PMAK-…`). Enables fetching Postman collections by id as a target (`postman://<collection-uid>`), and Postman environments (`postman://<collection-uid>?env=<environment-uid>`) to resolve collection variables. Not needed when passing a local collection export file.
 </ParamField>
 
-<ParamField path="STRIX_TELEMETRY" default="1" type="string">
-  Telemetry toggle. Set to `0`, `false`, `no`, or `off` to disable telemetry (PostHog, Scarf, OTEL).
+<ParamField path="STRIX_TELEMETRY" default="0 (Strix Safe)" type="string">
+  Telemetry toggle. **Off by default in this fork.** Set to `1` / `true` / `yes` / `on` to enable PostHog/Scarf beacons.
+</ParamField>
+
+<ParamField path="STRIX_ALLOW_SELF_UPDATE" default="0" type="string">
+  Allow background update checks / update prompts. Automated upgrades (`strix --update`, pip/pipx/uv) are still refused in Strix Safe — update this fork with `git pull` instead.
+</ParamField>
+
+<ParamField path="STRIX_ALLOW_MCP" default="0" type="string">
+  Allow loading MCP servers from `~/.strix/mcp-servers.json` or `$STRIX_MCP_CONFIG`. Also set automatically when `--mcp-config` is passed.
+</ParamField>
+
+<ParamField path="STRIX_ALLOW_MCP_STDIO" default="0" type="string">
+  Allow MCP `stdio` transports (host subprocesses). Requires `STRIX_ALLOW_MCP` as well for the default config path.
+</ParamField>
+
+<ParamField path="STRIX_WRITABLE_MOUNTS" default="0" type="string">
+  Mount local targets read-write into the sandbox. Default is read-only.
+</ParamField>
+
+<ParamField path="STRIX_VIEWER_ALLOW_REMOTE" default="0" type="string">
+  Allow `strix view --host` values other than loopback (`127.0.0.1` / `localhost` / `::1`).
 </ParamField>
 
 <ParamField path="TRACELOOP_BASE_URL" type="string">

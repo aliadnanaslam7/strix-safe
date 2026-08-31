@@ -6,9 +6,15 @@
 
 <div align="center">
 
-# Strix
+# Strix Safe
 
-### The open-source AI pentesting tool. Autonomous AI hackers that find and fix your app’s vulnerabilities.
+### Hardened public fork of [usestrix/strix](https://github.com/usestrix/strix) — safer defaults for team use.
+
+> **This is not upstream Strix.** Repo: [aliadnanaslam7/strix-safe](https://github.com/aliadnanaslam7/strix-safe).  
+> See [TEAM_HARDENING.md](./TEAM_HARDENING.md) for install and opt-in gates.  
+> **Do not** use `curl https://strix.ai/install | bash` if you want these defaults.
+
+**Safe defaults:** telemetry off · MCP off · local mounts read-only · no background self-update · viewer loopback-only.
 
 <br/>
 
@@ -78,19 +84,22 @@ Strix are autonomous AI penetration testing agents that act just like real hacke
 ### Installation & First Scan
 
 ```bash
-# Install Strix
-curl -sSL https://strix.ai/install | bash
+# Clone this fork (do NOT use curl | bash from strix.ai)
+git clone git@github.com:aliadnanaslam7/strix-safe.git
+cd strix-safe
+uv sync   # or: pip install -e .
 
 # Configure your AI provider
 export STRIX_LLM="openai/gpt-5.4"
 export LLM_API_KEY="your-api-key"
 
-# Run your first security assessment
+# Run your first security assessment (telemetry/MCP off by default)
 strix --target ./app-directory
 ```
 
 > [!NOTE]
-> First run automatically pulls the sandbox Docker image. Results are saved to `strix_runs/<run-name>`
+> First run automatically pulls the sandbox Docker image. Results are saved to `strix_runs/<run-name>`.  
+> Hardening details: [TEAM_HARDENING.md](./TEAM_HARDENING.md).
 
 ---
 
@@ -168,13 +177,13 @@ strix view
 # ...or open a specific run by name
 strix view my-run-name
 
-# Expose the viewer on all IPv4 interfaces at a fixed port
-strix view --host 0.0.0.0 --port 8080 --no-open
+# Expose the viewer on all IPv4 interfaces (requires opt-in; share the token carefully)
+STRIX_VIEWER_ALLOW_REMOTE=1 strix view --host 0.0.0.0 --port 8080 --no-open
 ```
 
 `strix view` starts a lightweight local server (bound to `127.0.0.1` on a random port) and opens your browser to a private, tokened link. Nothing leaves your machine: the dashboard reads the run's files straight off disk, with no cloud account or upload required. The UI ships prebuilt with Strix, so there is no extra install and no JS build step.
 
-Use `--host 0.0.0.0` to make the viewer reachable from other machines. Replace `0.0.0.0` in the printed URL with the server's reachable IP or hostname. The token in that URL grants access to the selected run's scan data, history, and steering, so only share it with trusted users and restrict the port with your firewall. Requests without the token-derived session cannot read run data.
+Remote binds (`--host 0.0.0.0`, LAN IPs, etc.) are refused unless `STRIX_VIEWER_ALLOW_REMOTE=1` is set. Replace `0.0.0.0` in the printed URL with the server's reachable IP or hostname. The token in that URL grants access to the selected run's scan data, history, and steering, so only share it with trusted users and restrict the port with your firewall. Requests without the token-derived session cannot read run data.
 
 ### What's in the dashboard
 

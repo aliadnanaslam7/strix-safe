@@ -1,14 +1,14 @@
 ### Overview
 
-To help make Strix better for everyone, we collect anonymized data that helps us understand how to better improve our AI security agent for our users, guide the addition of new features, and fix common errors and bugs. This feedback loop is crucial for improving Strix's capabilities and user experience.
+**Strix Safe** disables telemetry by default. Upstream Strix can collect anonymized usage data via [PostHog](https://posthog.com) and [Scarf](https://scarf.sh); this fork does not send those beacons unless you opt in.
 
-We use [PostHog](https://posthog.com), an open-source analytics platform, for data collection and analysis, along with [Scarf](https://scarf.sh). Our telemetry implementation is fully transparent - you can review the source code ([posthog.py](https://github.com/usestrix/strix/blob/main/strix/telemetry/posthog.py), [scarf.py](https://github.com/usestrix/strix/blob/main/strix/telemetry/scarf.py)) to see exactly what we track.
+You can review the source ([posthog.py](./posthog.py), [scarf.py](./scarf.py)) to see exactly what would be tracked when enabled.
 
-### Telemetry Policy
+### Telemetry Policy (when enabled)
 
 Privacy is our priority. All collected data is anonymized by default. Each session gets a random UUID that is not persisted or tied to you. Your code, scan targets, vulnerability details, and findings always remain private and are never collected.
 
-### What We Track
+### What We Track (only if opted in)
 
 We collect only very **basic** usage data including:
 
@@ -26,12 +26,16 @@ We collect only very **basic** usage data including:
 - Vulnerability details, descriptions, or code
 - LLM requests and responses
 
-### How to Opt Out
+### Defaults in Strix Safe
 
-Telemetry in Strix is entirely **optional**:
+Telemetry is **off** by default. To opt in:
+
+```bash
+export STRIX_TELEMETRY=1
+```
+
+To keep it off explicitly:
 
 ```bash
 export STRIX_TELEMETRY=0
 ```
-
-You can set this environment variable before running Strix to disable **all** telemetry.

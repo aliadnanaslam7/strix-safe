@@ -17,6 +17,7 @@ from strix.core.paths import run_dir_for, runtime_state_dir
 from strix.runtime.backends import backend_supports_bind_mounts, get_backend
 from strix.runtime.caido_bootstrap import bootstrap_caido
 from strix.runtime.caido_handle import CaidoBootstrapHandle
+from strix.runtime.safe_mounts import reject_writable_manifest_uploads_if_needed
 
 
 if TYPE_CHECKING:
@@ -51,6 +52,8 @@ def _host_identity_env() -> dict[str, str]:
 
 
 def build_bind_mounts(local_sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    # Strix Safe: local targets mount read-only unless STRIX_WRITABLE_MOUNTS=1.
+    read_only = not load_settings().hardening.writable_mounts
     bind_mounts: list[dict[str, Any]] = []
     for src in local_sources:
         ws_subdir = src.get("workspace_subdir") or ""
@@ -59,7 +62,9 @@ def build_bind_mounts(local_sources: list[dict[str, Any]]) -> list[dict[str, Any
             continue
         resolved = Path(host_path).expanduser().resolve()
         target = f"{_WORKSPACE_ROOT}/{ws_subdir}"
-        bind_mounts.append({"source": str(resolved), "target": target, "read_only": False})
+        bind_mounts.append(
+            {"source": str(resolved), "target": target, "read_only": read_only}
+        )
         if src.get("protect_metadata"):
             bind_mounts.extend(_metadata_mounts(resolved, target))
     return bind_mounts
@@ -289,6 +294,7 @@ async def create_or_reuse(
                 build_extra_file_bind_mounts(extra_files, staging_dir, local_sources)
             )
     else:
+        reject_writable_manifest_uploads_if_needed(backend_name, local_sources)
         bind_mounts = []
         entries = build_manifest_entries(local_sources)
         if extra_files:

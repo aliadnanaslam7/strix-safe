@@ -107,7 +107,23 @@ def load_user_mcp_configs(path: Path | None = None) -> list[McpConnectionConfig]
     returns ``[]``; individual entries that fail validation are logged and
     skipped. Connections sharing a name are de-duplicated (first wins), and an
     optional per-run include/exclude selection is applied last.
+
+    Strix Safe: returns ``[]`` unless ``STRIX_ALLOW_MCP=1`` (the CLI sets this
+    when ``--mcp-config`` is passed). Stdio transports additionally require
+    ``STRIX_ALLOW_MCP_STDIO=1``.
     """
+    from strix.config import load_settings
+
+    hardening = load_settings().hardening
+    # Explicit ``path=`` (tests / API) or STRIX_ALLOW_MCP=1 opts in. The default
+    # ``~/.strix/mcp-servers.json`` is ignored unless allow_mcp is set.
+    if not hardening.allow_mcp and path is None:
+        logger.info(
+            "MCP disabled (Strix Safe default). Set STRIX_ALLOW_MCP=1 and/or pass "
+            "--mcp-config to enable."
+        )
+        return []
+
     source = _resolve_path(path)
     if not source.exists():
         return []
@@ -129,5 +145,18 @@ def load_user_mcp_configs(path: Path | None = None) -> list[McpConnectionConfig]
             configs.append(McpConnectionConfig.model_validate(entry))
         except ValidationError as exc:
             logger.warning("Skipping invalid MCP server entry #%d in %s: %s", index, source, exc)
+
+    if not hardening.allow_mcp_stdio:
+        kept: list[McpConnectionConfig] = []
+        for config in configs:
+            if config.transport == "stdio":
+                logger.warning(
+                    "Skipping MCP server %r: stdio transport is disabled "
+                    "(set STRIX_ALLOW_MCP_STDIO=1 to allow host subprocesses).",
+                    config.name,
+                )
+                continue
+            kept.append(config)
+        configs = kept
 
     return _apply_run_selection(_dedupe_by_name(configs))

@@ -16,6 +16,7 @@ from strix.core.paths import (
     run_record_path,
     runs_base_dir,
 )
+from strix.interface.viewer_host_policy import reject_remote_host_unless_allowed
 from strix.interface.viewer.server import authorized_url, bundle_is_built, serve
 from strix.interface.viewer.transcript import read_run_summary
 
@@ -65,6 +66,8 @@ def run_view(argv: list[str]) -> None:
             "Build it with: [cyan]cd strix/interface/viewer/frontend && npm ci && npm run build[/]"
         )
         raise SystemExit(1)
+
+    reject_remote_host_unless_allowed(args.host, console)
 
     run_dir = _resolve_run_dir(args.run, console)
 

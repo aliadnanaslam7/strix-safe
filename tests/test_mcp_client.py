@@ -707,7 +707,11 @@ def test_prompt_inventory_is_gated_on_availability() -> None:
 # --- loader ------------------------------------------------------------------
 
 
-def test_loader_parses_stdio_and_http_entries(tmp_path: Path) -> None:
+def test_loader_parses_stdio_and_http_entries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from strix.config import loader
+
     config_file = tmp_path / "mcp-servers.json"
     config_file.write_text(
         json.dumps(
@@ -729,6 +733,8 @@ def test_loader_parses_stdio_and_http_entries(tmp_path: Path) -> None:
         ),
         encoding="utf-8",
     )
+    monkeypatch.setenv("STRIX_ALLOW_MCP_STDIO", "1")
+    loader._cached = None
 
     configs = load_user_mcp_configs(config_file)
 
@@ -737,7 +743,34 @@ def test_loader_parses_stdio_and_http_entries(tmp_path: Path) -> None:
     assert configs[1].allowed_tools == ["list_files"]
 
 
-def test_loader_skips_bad_entry_but_keeps_good_ones(tmp_path: Path) -> None:
+def test_loader_filters_stdio_even_with_explicit_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from strix.config import loader
+
+    config_file = tmp_path / "mcp-servers.json"
+    config_file.write_text(
+        json.dumps(
+            [
+                {"name": "local_fs", "transport": "stdio", "command": "npx"},
+                {"name": "remote", "transport": "http", "url": "https://mcp.example.com"},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("STRIX_ALLOW_MCP_STDIO", raising=False)
+    loader._cached = None
+
+    configs = load_user_mcp_configs(config_file)
+
+    assert [c.name for c in configs] == ["remote"]
+
+
+def test_loader_skips_bad_entry_but_keeps_good_ones(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from strix.config import loader
+
     config_file = tmp_path / "mcp-servers.json"
     config_file.write_text(
         json.dumps(
@@ -748,6 +781,8 @@ def test_loader_skips_bad_entry_but_keeps_good_ones(tmp_path: Path) -> None:
         ),
         encoding="utf-8",
     )
+    monkeypatch.setenv("STRIX_ALLOW_MCP_STDIO", "1")
+    loader._cached = None
 
     configs = load_user_mcp_configs(config_file)
 
@@ -759,16 +794,38 @@ def test_loader_returns_empty_when_file_absent(tmp_path: Path) -> None:
 
 
 def test_loader_reads_env_var_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from strix.config import loader
+
     config_file = tmp_path / "from-env.json"
     config_file.write_text(
         json.dumps([{"name": "local_fs", "transport": "stdio", "command": "npx"}]),
         encoding="utf-8",
     )
     monkeypatch.setenv("STRIX_MCP_CONFIG", str(config_file))
+    monkeypatch.setenv("STRIX_ALLOW_MCP", "1")
+    monkeypatch.setenv("STRIX_ALLOW_MCP_STDIO", "1")
+    loader._cached = None
 
     configs = load_user_mcp_configs()
 
     assert [c.name for c in configs] == ["local_fs"]
+
+
+def test_loader_disabled_by_strix_safe_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from strix.config import loader
+
+    config_file = tmp_path / "from-env.json"
+    config_file.write_text(
+        json.dumps([{"name": "local_fs", "transport": "http", "url": "https://mcp.example"}]),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("STRIX_MCP_CONFIG", str(config_file))
+    monkeypatch.delenv("STRIX_ALLOW_MCP", raising=False)
+    loader._cached = None
+
+    assert load_user_mcp_configs() == []
 
 
 def _names_file(tmp_path: Path, *names: str) -> Path:
@@ -780,7 +837,11 @@ def _names_file(tmp_path: Path, *names: str) -> Path:
     return config_file
 
 
-def test_loader_drops_duplicate_named_connections(tmp_path: Path) -> None:
+def test_loader_drops_duplicate_named_connections(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from strix.config import loader
+
     config_file = tmp_path / "mcp-servers.json"
     config_file.write_text(
         json.dumps(
@@ -792,6 +853,8 @@ def test_loader_drops_duplicate_named_connections(tmp_path: Path) -> None:
         ),
         encoding="utf-8",
     )
+    monkeypatch.setenv("STRIX_ALLOW_MCP_STDIO", "1")
+    loader._cached = None
 
     configs = load_user_mcp_configs(config_file)
 
@@ -802,8 +865,12 @@ def test_loader_drops_duplicate_named_connections(tmp_path: Path) -> None:
 def test_loader_include_selection_keeps_only_named(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from strix.config import loader
+
     config_file = _names_file(tmp_path, "a", "b", "c")
+    monkeypatch.setenv("STRIX_ALLOW_MCP_STDIO", "1")
     monkeypatch.setenv("STRIX_MCP_ONLY", "a,c")
+    loader._cached = None
 
     configs = load_user_mcp_configs(config_file)
 
@@ -813,8 +880,12 @@ def test_loader_include_selection_keeps_only_named(
 def test_loader_exclude_selection_drops_named(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from strix.config import loader
+
     config_file = _names_file(tmp_path, "a", "b", "c")
+    monkeypatch.setenv("STRIX_ALLOW_MCP_STDIO", "1")
     monkeypatch.setenv("STRIX_MCP_EXCLUDE", "b")
+    loader._cached = None
 
     configs = load_user_mcp_configs(config_file)
 

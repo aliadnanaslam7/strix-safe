@@ -13,12 +13,14 @@ Public surface:
 
 from strix.config.loader import (
     apply_config_override,
+    invalidate_settings_cache,
     load_settings,
     persist_current,
 )
 from strix.config.settings import (
     ContextSettings,
     DedupeSettings,
+    HardeningSettings,
     IntegrationSettings,
     LlmSettings,
     RuntimeSettings,
@@ -30,12 +32,14 @@ from strix.config.settings import (
 __all__ = [
     "ContextSettings",
     "DedupeSettings",
+    "HardeningSettings",
     "IntegrationSettings",
     "LlmSettings",
     "RuntimeSettings",
     "Settings",
     "TelemetrySettings",
     "apply_config_override",
+    "invalidate_settings_cache",
     "load_settings",
     "persist_current",
 ]
