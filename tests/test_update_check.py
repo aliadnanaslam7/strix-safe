@@ -180,6 +180,14 @@ def test_self_update_non_binary_also_refuses(monkeypatch: pytest.MonkeyPatch) ->
     assert "Safe" in buffer.getvalue() or "git" in buffer.getvalue().lower()
 
 
+def test_run_package_upgrade_refuses_without_subprocess() -> None:
+    buffer = io.StringIO()
+    assert update_check.run_package_upgrade(Console(file=buffer), "pipx") is False
+    text = buffer.getvalue()
+    assert "Safe" in text or "disabled" in text.lower()
+    assert "git" in text.lower()
+
+
 def test_restart_env_strips_pyinstaller_vars(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("_MEIPASS2", "/stale/_MEIold")
     monkeypatch.setenv("_PYI_APPLICATION_HOME_DIR", "/stale/_MEIold")

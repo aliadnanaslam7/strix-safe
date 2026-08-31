@@ -89,7 +89,7 @@ affecting the agents that do the actual testing.
 </ParamField>
 
 <ParamField path="STRIX_ALLOW_SELF_UPDATE" default="0" type="string">
-  Allow background update checks / update prompts. Explicit `strix --update` still works when unset.
+  Allow background update checks / update prompts. Automated upgrades (`strix --update`, pip/pipx/uv) are still refused in Strix Safe — update this fork with `git pull` instead.
 </ParamField>
 
 <ParamField path="STRIX_ALLOW_MCP" default="0" type="string">

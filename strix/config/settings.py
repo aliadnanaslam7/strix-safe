@@ -126,8 +126,8 @@ class HardeningSettings(BaseSettings):
 
     model_config = _BASE_CONFIG
 
-    # Background update checks / update prompts. Explicit ``strix --update`` still
-    # works; set STRIX_ALLOW_SELF_UPDATE=1 to restore upstream auto-check UX.
+    # Background update checks / prompts only. Automated upgrades
+    # (``strix --update``, pip/pipx/uv) remain refused — update via git on this fork.
     allow_self_update: bool = Field(default=False, alias="STRIX_ALLOW_SELF_UPDATE")
     # MCP is fully off unless opted in (CLI --mcp-config sets this for the run).
     allow_mcp: bool = Field(default=False, alias="STRIX_ALLOW_MCP")

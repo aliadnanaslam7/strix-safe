@@ -16,7 +16,6 @@ import os
 import platform
 import shutil
 import stat
-import subprocess
 import sys
 import tarfile
 import tempfile
@@ -46,8 +45,9 @@ _background_thread: threading.Thread | None = None
 
 
 def _is_disabled() -> bool:
-    # Strix Safe: background update checks are off unless explicitly allowed.
-    # Explicit ``strix --update`` still works; STRIX_NO_UPDATE_CHECK / CI also disable.
+    # Strix Safe: background update checks / prompts are off unless
+    # STRIX_ALLOW_SELF_UPDATE=1. Explicit ``strix --update`` is also refused
+    # (see ``self_update``); STRIX_NO_UPDATE_CHECK / CI additionally disable checks.
     from strix.config import load_settings
 
     if not load_settings().hardening.allow_self_update:
@@ -241,22 +241,13 @@ def notify_update(console: Console) -> None:
 
 
 def run_package_upgrade(console: Console, method: str) -> bool:
-    """Upgrade a package-manager install by running its upgrade command."""
-    command = get_upgrade_command(method).split()
-    console.print(f"[dim]Running[/] [#60a5fa]{' '.join(command)}[/]")
-    try:
-        result = subprocess.run(command, check=False)  # noqa: S603
-    except OSError as e:
-        console.print(f"[bold red]Update failed:[/] {e}")
-        return False
-    if result.returncode != 0:
-        console.print(
-            f"[bold red]Update failed[/] [dim](exit code {result.returncode}).[/] "
-            f"Run it manually: [#60a5fa]{get_upgrade_command(method)}[/]"
-        )
-        return False
-    console.print("[#22c55e]✓ strix updated — restart the scan to use the new version[/]")
-    return True
+    """Refuse automated package-manager upgrades for the Strix Safe fork.
+
+    Upstream pip/pipx/uv ``strix-agent`` packages do not include Safe defaults.
+    Never ``subprocess.run`` the display string from :func:`get_upgrade_command`.
+    """
+    _ = method
+    return self_update(console)
 
 
 def prompt_update_if_available(console: Console) -> bool:
